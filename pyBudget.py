@@ -216,7 +216,7 @@ class registerScreen(tk.Frame):
         elif any(i in uname for i in banned_chars):
             alert("Username contains invalid character!")
 
-        elif any(i in uname for i in banned_chars):
+        elif any(i in pwd for i in banned_chars):
             alert("Password contains invalid character!")
 
         elif pwd == "":
@@ -248,7 +248,10 @@ class mainScreen(tk.Frame):
         label = tk.Label(self, text="main screen goes here", font=largeFont)
         label.pack(pady=30, padx=10)
 
-        
+        username = 'czhu21'
+        transactions = pd.read_csv('./profiles/czhu21_transactions.csv', index_col=0)
+        bud_nums = pd.read_csv('./profiles/czhu21.csv', index_col=0)
+
         testButton = ttk.Button(self, text="test",
                                   command=self.asdf)
         testButton.pack(side='top', pady=20)
