@@ -11,6 +11,14 @@ import sys
 import pandas as pd
 import hashlib
 from copy import deepcopy
+from datetime import date
+
+global usr
+usr = None
+
+today = date.today()
+currentDay = today.strftime("%m/%d/%y")
+print(currentDay)
 
 gigaFont = ("Calibri", 24, 'bold')
 largeFont = ("Calibri", 16)
@@ -22,6 +30,7 @@ banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
 
 categories = ['rent', 'bills', 'food', 'subscriptions', 'entertainment', 'misc']
 transaction_info = ['date', 'type', 'note', 'amt']
+
 
 def alert(message):
 
@@ -101,8 +110,8 @@ class loginScreen(tk.Frame):
         username_try = tk.StringVar()
         password_try = tk.StringVar()
 
-        uname = tk.Label(self, text="Username:")
-        uname.pack()
+        nameLabel = tk.Label(self, text="Username:")
+        nameLabel.pack()
         unamefield_try = ttk.Entry(self, textvariable=username_try)
         unamefield_try.pack()
 
@@ -120,7 +129,8 @@ class loginScreen(tk.Frame):
         homebutton.pack(side='bottom', pady=20)
 
     def login(self):
-        uname = username_try.get()
+        self.uname = username_try.get()
+
         pwd = password_try.get()
         unamefield_try.delete(0, tk.END)
         pwdfield_try.delete(0, tk.END)
@@ -131,15 +141,18 @@ class loginScreen(tk.Frame):
             logins[line.split()[0]] = line.split()[1]
         f.close()
 
-        if uname in logins.keys():
+        if self.uname in logins.keys():
             pwd = pwd.encode('utf-8')
             hashed_pass = hashlib.sha512(pwd)
             digest = hashed_pass.hexdigest()
 
-            if digest == logins[uname]:
+            if digest == logins[self.uname]:
+                self.controller.frames[mainScreen].set_uname(self.uname)
+
                 global usr
-                usr = deepcopy(uname)
+                usr = deepcopy(self.uname)
                 self.controller.show_frame(mainScreen)
+
             else:
                 popup = tk.Toplevel()
                 popup.wm_geometry("300x120")
@@ -149,6 +162,7 @@ class loginScreen(tk.Frame):
 
                 okButton = ttk.Button(popup, text="OK", command=popup.destroy)
                 okButton.pack(pady=10)
+
         else:
             popup = tk.Toplevel()
             popup.wm_geometry("300x120")
@@ -244,25 +258,43 @@ class registerScreen(tk.Frame):
 
 class mainScreen(tk.Frame):
     def __init__(self, parent, controller):
+        self.username = None
+
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="main screen goes here", font=largeFont)
-        label.pack(pady=30, padx=10)
+        label = tk.Label(self, text="Budget Home:", font=largeFont)
+        label.grid(pady=30, padx=50)
 
-        username = 'czhu21'
-        transactions = pd.read_csv('./profiles/czhu21_transactions.csv', index_col=0)
-        bud_nums = pd.read_csv('./profiles/czhu21.csv', index_col=0)
+        # testButton = ttk.Button(self, text="test",
+        #                         command=self.pr)
+        # testButton.pack(side='top', pady=20)
 
-        testButton = ttk.Button(self, text="test",
-                                  command=self.asdf)
-        testButton.pack(side='top', pady=20)
+        # test2Button = ttk.Button(self, text="test2",
+        #                          command=lambda: print(usr))
+        # test2Button.pack(side='top', pady=20)
 
-        
-        logoutButton = ttk.Button(self, text="Logout",
-                                  command=lambda: controller.show_frame(homeScreen))
-        logoutButton.pack(side='bottom', pady=20)
+        # logoutButton = ttk.Button(self, text="Logout",
+        #                           command=lambda: controller.show_frame(homeScreen))
+        # logoutButton.pack(side='bottom', pady=20)
 
-    def asdf(self):
+    def pr(self):
+        # print(self.bud_nums)
         print(usr)
+        print(type(usr))
+
+    def get_username(self):
+        username = usr
+        return username
+
+    def set_uname(self, uname):
+        self.username = uname
+
+        path = './profiles/' + self.username + '.csv'
+        bud_nums = pd.read_csv(path, index_col=0)
+        path = './profiles/' + self.username + '_transactions.csv'
+        transactions = pd.read_csv(path, index_col=0)
+        print(bud_nums)
+        print(transactions)
+
 
 if __name__ == "__main__":
     window = pyBudget()
