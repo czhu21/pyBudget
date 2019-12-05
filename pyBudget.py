@@ -12,13 +12,17 @@ import pandas as pd
 import hashlib
 from copy import deepcopy
 from datetime import date
+from decimal import Decimal
 
 global usr
 usr = None
 
 today = date.today()
-currentDay = today.strftime("%m/%d/%y")
-print(currentDay)
+currentDate = today.strftime("%Y/%m/%d")
+currentYear = today.strftime("%Y")
+currentMonth = today.strftime("%m")
+currentDay = today.strftime("%d")
+print(currentDate)
 
 gigaFont = ("Calibri", 24, 'bold')
 largeFont = ("Calibri", 16)
@@ -28,7 +32,7 @@ directory = os.getcwd()
 
 banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
 
-categories = ['Misc', 'Rent', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
+categories = ['Misc', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
 transaction_info = ['date', 'type', 'note', 'amt', 'y', 'm', 'd']
 
 
@@ -143,7 +147,8 @@ class loginScreen(tk.Frame):
 
             if digest == logins[self.uname]:
                 self.controller.frames[mainScreen].load_user(self.uname)
-
+                self.controller.frames[mainScreen].write_name()
+                self.controller.frames[mainScreen].tracker()
                 global usr
                 usr = deepcopy(self.uname)
                 self.controller.show_frame(mainScreen)
@@ -237,7 +242,6 @@ class registerScreen(tk.Frame):
             info_df = pd.DataFrame(columns=categories)
             temp = pd.DataFrame({
                 'Misc': [0],
-                'Rent': [0],
                 'Bills': [0],
                 'Food': [0],
                 'Subscriptions': [0],
@@ -257,6 +261,7 @@ class registerScreen(tk.Frame):
 
 class mainScreen(tk.Frame):
     def __init__(self, parent, controller):
+        self.controller = controller
         self.username = None
         tk.Frame.__init__(self, parent)
 
@@ -269,6 +274,9 @@ class mainScreen(tk.Frame):
         # Page title
         label1 = tk.Label(self, text="Budget Homepage", font=gigaFont)
         label1.grid(row=2, column=2, columnspan=15)
+        # Username
+        self.namelabel = tk.Label(self, text="", font=largeFont)
+        self.namelabel.grid(row=3, column=2, columnspan=15)
         # Logout button
         logoutButton = ttk.Button(self, text="Logout",
                                   command=lambda: controller.show_frame(homeScreen))
@@ -319,8 +327,16 @@ class mainScreen(tk.Frame):
 
         # View Pie Chart of Transactions
         transactionButton = ttk.Button(self, text="Pie Chart",
-                                       command=lambda: controller.show_frame(pieScreen))
+                                       command=self.pieplot)
         transactionButton.grid(row=12, column=8, padx=(20, 0))
+
+        # Text widget for displaying transaction history
+        self.history = tk.Text(self, height=20, width=70)
+        self.history.grid(row=2, column = 20, rowspan=10, columnspan=20)
+
+    def write_name(self):
+        welcome = "Welcome " + self.username + "!"
+        self.namelabel.config(text=welcome)
 
     def add_transaction(self):
         tcat = self.category.get()
@@ -339,19 +355,20 @@ class mainScreen(tk.Frame):
             alert("Note field cannot be empty!")
         else:
             temp = pd.DataFrame({
-                'date': [currentDay],
+                'date': [currentDate],
                 'type': [tcat],
                 'note': [tnote],
                 'amt': [tamt],
-                'y': [int(currentDay.split('/')[2])],
-                'm': [int(currentDay.split('/')[0])],
-                'd': [int(currentDay.split('/')[1])]
+                'y': [int(currentYear)],
+                'm': [int(currentMonth)],
+                'd': [int(currentDay)]
                 })
             self.transactions = self.transactions.append(temp)
             # self.transactions.amt = self.transactions.amt.round(2)
             print(self.transactions)
             path = './profiles/' + self.username + '_transactions.csv'
             self.transactions.to_csv(path)
+            self.tracker()
 
     def load_user(self, uname):
         self.username = uname
@@ -363,9 +380,19 @@ class mainScreen(tk.Frame):
         print(self.bud_nums)
         print(self.transactions)
 
+    def pieplot(self):
+        self.controller.frames[pieScreen].plot()
+        self.controller.show_frame(pieScreen)
+
+    def tracker(self):
+        last15 = self.transactions.tail(10)
+        last15 = last15[['date', 'type', 'note', 'amt']]
+        self.history.insert(tk.END, str(last15))
+
 
 class pieScreen(tk.Frame):
     def __init__(self, parent, controller):
+        self.controller = controller
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
@@ -381,6 +408,9 @@ class pieScreen(tk.Frame):
         mainButton = ttk.Button(self, text="OK",
                                 command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=3, column=2, sticky='', padx=(0, 0))
+    
+    def plot(self):
+        print('yes')
 
 
 if __name__ == "__main__":
