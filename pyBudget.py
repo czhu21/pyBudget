@@ -29,7 +29,7 @@ directory = os.getcwd()
 banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
 
 categories = ['Misc', 'Rent', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
-transaction_info = ['date', 'type', 'note', 'amt']
+transaction_info = ['date', 'type', 'note', 'amt', 'y', 'm', 'd']
 
 
 def alert(message):
@@ -142,7 +142,7 @@ class loginScreen(tk.Frame):
             digest = hashed_pass.hexdigest()
 
             if digest == logins[self.uname]:
-                self.controller.frames[mainScreen].set_uname(self.uname)
+                self.controller.frames[mainScreen].load_user(self.uname)
 
                 global usr
                 usr = deepcopy(self.uname)
@@ -233,8 +233,17 @@ class registerScreen(tk.Frame):
 
             with open('logins', 'a') as f:
                 f.write(uname + " " + digest + "\n")
-            
+
             info_df = pd.DataFrame(columns=categories)
+            temp = pd.DataFrame({
+                'Misc': [0],
+                'Rent': [0],
+                'Bills': [0],
+                'Food': [0],
+                'Subscriptions': [0],
+                'Entertainment': [0]})
+            info_df = info_df.append(temp)
+            print(info_df)
             info_filepath = './profiles/' + uname + '.csv'
             info_df.to_csv(info_filepath)
 
@@ -252,7 +261,7 @@ class mainScreen(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
-        vertframe = ttk.Frame(self, borderwidth=5, width=1, height=800) #relief="sunken",
+        vertframe = ttk.Frame(self, borderwidth=5, width=1, height=800)
         vertframe.grid(column=0, row=1, columnspan=1, rowspan=30)
         # Horizontal frame for grid reference
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
@@ -263,17 +272,29 @@ class mainScreen(tk.Frame):
         # Logout button
         logoutButton = ttk.Button(self, text="Logout",
                                   command=lambda: controller.show_frame(homeScreen))
-        logoutButton.grid(row=30, column=20, padx=(10,0), pady=(0,10)) #pady=(780,0), padx=400
+        logoutButton.grid(row=30, column=20, padx=(10, 0), pady=(0, 10))
 
         # New transaction label
         label2 = tk.Label(self, text="New Transaction", font=largeFont)
         label2.grid(row=4, column=2, columnspan=15)
 
         # Dropdown menu for transaction categories
+        # self.category = tk.StringVar()
+        # self.category.set('Misc')
+        # popupMenu = ttk.OptionMenu(self, self.category, *categories)
+        # menuLabel = tk.Label(self, text="Select a transaction category:",
+        #                      font=medFont)
+        # menuLabel.grid(row=5, column=2, columnspan=15)
+        # popupMenu.grid(row=6, column=2, rowspan=1, columnspan=15)
+
         self.category = tk.StringVar()
-        self.category.set('Misc')
-        popupMenu = ttk.OptionMenu(self, self.category, *categories)
-        menuLabel = tk.Label(self, text="Select a transaction category:", font=medFont)
+        # self.category.set('Misc')
+        popupMenu = ttk.Combobox(self, textvariable=self.category,
+                                 state='readonly')
+        popupMenu['values'] = categories
+        popupMenu.current(0)
+        menuLabel = tk.Label(self, text="Select a transaction category:",
+                             font=medFont)
         menuLabel.grid(row=5, column=2, columnspan=15)
         popupMenu.grid(row=6, column=2, rowspan=1, columnspan=15, sticky="ew")
 
@@ -293,8 +314,13 @@ class mainScreen(tk.Frame):
 
         # Add Transaction
         transactionButton = ttk.Button(self, text="Add Transaction",
-                                  command=self.add_transaction)
-        transactionButton.grid(row=9, column=8, padx=(20,0))
+                                       command=self.add_transaction)
+        transactionButton.grid(row=9, column=8, padx=(20, 0))
+
+        # View Pie Chart of Transactions
+        transactionButton = ttk.Button(self, text="Pie Chart",
+                                       command=lambda: controller.show_frame(pieScreen))
+        transactionButton.grid(row=12, column=8, padx=(20, 0))
 
     def add_transaction(self):
         tcat = self.category.get()
@@ -303,7 +329,8 @@ class mainScreen(tk.Frame):
             tamt = round(float(self.amount.get()), 2)
         except ValueError:
             alert("Amount must be a number!")
-            return 
+            self.amountEntry.delete(0, tk.END)
+            return
 
         self.amountEntry.delete(0, tk.END)
         self.notesEntry.delete(0, tk.END)
@@ -315,13 +342,18 @@ class mainScreen(tk.Frame):
                 'date': [currentDay],
                 'type': [tcat],
                 'note': [tnote],
-                'amt': [tamt]})
+                'amt': [tamt],
+                'y': [int(currentDay.split('/')[2])],
+                'm': [int(currentDay.split('/')[0])],
+                'd': [int(currentDay.split('/')[1])]
+                })
             self.transactions = self.transactions.append(temp)
+            # self.transactions.amt = self.transactions.amt.round(2)
             print(self.transactions)
             path = './profiles/' + self.username + '_transactions.csv'
             self.transactions.to_csv(path)
 
-    def set_uname(self, uname):
+    def load_user(self, uname):
         self.username = uname
 
         path = './profiles/' + self.username + '.csv'
@@ -331,15 +363,24 @@ class mainScreen(tk.Frame):
         print(self.bud_nums)
         print(self.transactions)
 
+
 class pieScreen(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Pie Chart of Spending:", font=largeFont)
-        label.grid(pady=30, padx=50)
 
-        # logoutButton = ttk.Button(self, text="OK",
-        #                           command=lambda: controller.show_frame(mainScreen))
-        # logoutButton.pack(side='bottom', pady=20)
+        # Vertical frame for grid reference
+        vertframe = ttk.Frame(self, borderwidth=5, width=1, height=800)
+        vertframe.grid(column=0, row=1, columnspan=1, rowspan=30)
+        # Horizontal frame for grid reference
+        horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
+        horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
+
+        label = tk.Label(self, text="Pie Chart of Spending:", font=largeFont)
+        label.grid(row=2, column=2, pady=0, padx=0)
+
+        mainButton = ttk.Button(self, text="OK",
+                                command=lambda: controller.show_frame(mainScreen))
+        mainButton.grid(row=3, column=2, sticky='', padx=(0, 0))
 
 
 if __name__ == "__main__":
