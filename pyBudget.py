@@ -249,7 +249,6 @@ class registerScreen(tk.Frame):
 class mainScreen(tk.Frame):
     def __init__(self, parent, controller):
         self.username = None
-
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
@@ -261,15 +260,6 @@ class mainScreen(tk.Frame):
         # Page title
         label1 = tk.Label(self, text="Budget Homepage", font=gigaFont)
         label1.grid(row=2, column=2, columnspan=15)
-
-        # testButton = ttk.Button(self, text="test",
-        #                         command=self.pr)
-        # testButton.pack(side='top', pady=20)
-
-        # test2Button = ttk.Button(self, text="test2",
-        #                          command=lambda: print(usr))
-        # test2Button.pack(side='top', pady=20)
-
         # Logout button
         logoutButton = ttk.Button(self, text="Logout",
                                   command=lambda: controller.show_frame(homeScreen))
@@ -290,14 +280,14 @@ class mainScreen(tk.Frame):
         # Notes
         self.note = tk.StringVar()
         label3 = tk.Label(self, text="Notes:", font=medFont)
-        label3.grid(row=7, column=2, columnspan=5)
+        label3.grid(row=7, column=2, columnspan=5, sticky='w')
         self.notesEntry = ttk.Entry(self, textvariable=self.note)
         self.notesEntry.grid(row=7, column=7, columnspan=10, sticky='ew')
 
         # Amount
         self.amount = tk.StringVar()
         label4 = tk.Label(self, text="Amount ($):", font=medFont)
-        label4.grid(row=8, column=2, columnspan=5)
+        label4.grid(row=8, column=2, columnspan=5, sticky='w')
         self.amountEntry = ttk.Entry(self, textvariable=self.amount)
         self.amountEntry.grid(row=8, column=7, columnspan=10, sticky='ew')
 
@@ -307,7 +297,6 @@ class mainScreen(tk.Frame):
         transactionButton.grid(row=9, column=8, padx=(20,0))
 
     def add_transaction(self):
-
         tcat = self.category.get()
         tnote = self.note.get()
         try:
@@ -321,27 +310,26 @@ class mainScreen(tk.Frame):
 
         if tnote.strip() == '':
             alert("Note field cannot be empty!")
-
-        
-
-    def pr(self):
-        # print(self.bud_nums)
-        print(usr)
-        print(type(usr))
-
-    def get_username(self):
-        username = usr
-        return username
+        else:
+            temp = pd.DataFrame({
+                'date': [currentDay],
+                'type': [tcat],
+                'note': [tnote],
+                'amt': [tamt]})
+            self.transactions = self.transactions.append(temp)
+            print(self.transactions)
+            path = './profiles/' + self.username + '_transactions.csv'
+            self.transactions.to_csv(path)
 
     def set_uname(self, uname):
         self.username = uname
 
         path = './profiles/' + self.username + '.csv'
-        bud_nums = pd.read_csv(path, index_col=0)
+        self.bud_nums = pd.read_csv(path, index_col=0)
         path = './profiles/' + self.username + '_transactions.csv'
-        transactions = pd.read_csv(path, index_col=0)
-        print(bud_nums)
-        print(transactions)
+        self.transactions = pd.read_csv(path, index_col=0)
+        print(self.bud_nums)
+        print(self.transactions)
 
 class pieScreen(tk.Frame):
     def __init__(self, parent, controller):
