@@ -9,6 +9,7 @@ import math
 import os
 import sys
 import pandas as pd
+pd.options.display.float_format = '${:,.2f}'.format
 import hashlib
 from copy import deepcopy
 from datetime import date
@@ -330,20 +331,18 @@ class mainScreen(tk.Frame):
         transactionButton.grid(row=12, column=8, padx=(20, 0))
 
         # Text widget for displaying transaction history
-        self.history1 = tk.Text(self, height=20, width=20)
-        self.history1.grid(row=2, column = 21, rowspan=10, columnspan=4)
-        self.history2 = tk.Text(self, height=20, width=20)
-        self.history2.tag_configure("center", justify='right')
-        self.history2.tag_add("center", 1.0, "end")
-        self.history2.grid(row=2, column = 25, rowspan=10, columnspan=5)
-        self.history3 = tk.Text(self, height=20, width=20)
-        self.history3.grid(row=2, column = 30, rowspan=10, columnspan=5)
-        self.history3.tag_configure("center", justify='right')
-        self.history3.tag_add("center", 1.0, "end")
-        self.history4 = tk.Text(self, height=20, width=20)
-        self.history4.grid(row=2, column = 35, rowspan=10, columnspan=5)
-        self.history4.tag_configure("center", justify='right')
-        self.history4.tag_add("center", 1.0, "end")
+        self.history1 = tk.Text(self, height=24, width=20)
+        self.history1.grid(row=3, column = 21, rowspan=7, columnspan=4)
+        
+        self.history2 = tk.Text(self, height=24, width=20)
+        self.history2.grid(row=3, column = 25, rowspan=7, columnspan=5)
+        
+        self.history3 = tk.Text(self, height=24, width=20)
+        self.history3.grid(row=3, column = 30, rowspan=7, columnspan=5)
+        
+        self.history4 = tk.Text(self, height=24, width=20)
+        self.history4.grid(row=3, column = 35, rowspan=7, columnspan=5)
+        
 
     def write_name(self):
         welcome = "Welcome " + self.username + "!"
@@ -360,7 +359,15 @@ class mainScreen(tk.Frame):
             return
 
         if tamt > 999999:
-            tamt = "{:.2E}".format(Decimal(tamt))
+            # tamt = "{:.2E}".format(Decimal(tamt))
+            alert("You don't have that much money.")
+            self.amountEntry.delete(0, tk.END)
+            return
+        
+        if len(tnote) > 12:
+            alert("Note length must be <12 characters!")
+            self.notesEntry.delete(0, tk.END)
+            return
 
         self.amountEntry.delete(0, tk.END)
         self.notesEntry.delete(0, tk.END)
@@ -408,11 +415,25 @@ class mainScreen(tk.Frame):
             self.history1.insert(tk.END, "")
             return
 
-        last15 = self.transactions.tail(10)
-        self.history1.insert(tk.END, last15[['Date']].to_string(index=False))
-        self.history2.insert(tk.END, last15[['Type']].to_string(index=False))
-        self.history3.insert(tk.END, last15[['Note']].to_string(index=False))
-        self.history4.insert(tk.END, last15[['Amount']].to_string(index=False))
+        last25 = self.transactions.tail(25)
+        self.history1.insert(tk.END, last25[['Date']].to_string(index=False))
+        self.history1.tag_configure("right", justify='right')
+        self.history1.tag_add("right", 1.0, "end")
+        # self.history1.tag_configure("bold", font=('bold'))
+        # self.history1.tag_add("bold", "1.0", "1.2")
+
+        self.history2.insert(tk.END, last25[['Type']].to_string(index=False))
+        self.history2.tag_configure("right", justify='right')
+        self.history2.tag_add("right", 1.0, "end")
+        
+        self.history3.insert(tk.END, last25[['Note']].to_string(index=False))
+        self.history3.tag_configure("right", justify='right')
+        self.history3.tag_add("right", 1.0, "end")
+        
+        amt = last25[['Amount']].round(2)
+        self.history4.insert(tk.END, last25[['Amount']].round(2).to_string(index=False))
+        self.history4.tag_configure("right", justify='right')
+        self.history4.tag_add("right", 1.0, "end")
 
 
 class pieScreen(tk.Frame):
@@ -433,13 +454,14 @@ class pieScreen(tk.Frame):
         mainButton = ttk.Button(self, text="OK",
                                 command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=3, column=2, sticky='', padx=(0, 0))
-    
+
     def plot(self):
+        # code to plot pie chart goes here
         print('yes')
 
 
 if __name__ == "__main__":
     window = pyBudget()
     window.title("pyBudget")
-    window.wm_geometry("1200x800")
+    window.wm_geometry("1100x640")
     window.mainloop()
