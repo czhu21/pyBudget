@@ -28,7 +28,7 @@ directory = os.getcwd()
 
 banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
 
-categories = ['rent', 'bills', 'food', 'subscriptions', 'entertainment', 'misc']
+categories = ['Misc', 'Rent', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
 transaction_info = ['date', 'type', 'note', 'amt']
 
 
@@ -55,7 +55,7 @@ class pyBudget(tk.Tk):
 
         self.frames = {}
 
-        for i in (homeScreen, loginScreen, registerScreen, mainScreen):
+        for i in (homeScreen, loginScreen, registerScreen, mainScreen, pieScreen):
             frame = i(container, self)
             self.frames[i] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -102,23 +102,18 @@ class loginScreen(tk.Frame):
         label = tk.Label(self, text="Login:", font=largeFont)
         label.pack(pady=(200, 10), padx=10)
 
-        global username_try
-        global password_try
-        global unamefield_try
-        global pwdfield_try
-
-        username_try = tk.StringVar()
-        password_try = tk.StringVar()
+        self.username_try = tk.StringVar()
+        self.password_try = tk.StringVar()
 
         nameLabel = tk.Label(self, text="Username:")
         nameLabel.pack()
-        unamefield_try = ttk.Entry(self, textvariable=username_try)
-        unamefield_try.pack()
+        self.unamefield_try = ttk.Entry(self, textvariable=self.username_try)
+        self.unamefield_try.pack()
 
         pwd = tk.Label(self, text="Password:")
         pwd.pack()
-        pwdfield_try = ttk.Entry(self, textvariable=password_try, show='*')
-        pwdfield_try.pack()
+        self.pwdfield_try = ttk.Entry(self, textvariable=self.password_try, show='*')
+        self.pwdfield_try.pack()
 
         loginButton = ttk.Button(self, text="Login",
                                  command=self.login)
@@ -129,11 +124,11 @@ class loginScreen(tk.Frame):
         homebutton.pack(side='bottom', pady=20)
 
     def login(self):
-        self.uname = username_try.get()
+        self.uname = self.username_try.get()
 
-        pwd = password_try.get()
-        unamefield_try.delete(0, tk.END)
-        pwdfield_try.delete(0, tk.END)
+        pwd = self.password_try.get()
+        self.unamefield_try.delete(0, tk.END)
+        self.pwdfield_try.delete(0, tk.END)
 
         logins = {}
         f = open('logins', 'r')
@@ -182,24 +177,19 @@ class registerScreen(tk.Frame):
         label = tk.Label(self, text="Enter a username and password to register a new account:", font=largeFont)
         label.pack(pady=(200, 10), padx=10)
 
-        global username
-        global password
-        global unamefield
-        global pwdfield
-
-        username = tk.StringVar()
-        password = tk.StringVar()
+        self.username = tk.StringVar()
+        self.password = tk.StringVar()
 
         uname = tk.Label(self, text="Username:")
         uname.pack()
-        unamefield = ttk.Entry(self, textvariable=username)
-        unamefield.pack()
-        unamefield.focus_set()
+        self.unameEntry = ttk.Entry(self, textvariable=self.username)
+        self.unameEntry.pack()
+        self.unameEntry.focus_set()
 
         pwd = tk.Label(self, text="Password:")
         pwd.pack()
-        pwdfield = ttk.Entry(self, textvariable=password, show='*')
-        pwdfield.pack()
+        self.pwdfield = ttk.Entry(self, textvariable=self.password, show='*')
+        self.pwdfield.pack()
 
         registerButton = ttk.Button(self, text="Register",
                                     command=self.register)
@@ -210,10 +200,10 @@ class registerScreen(tk.Frame):
         homeButton.pack(side='bottom', pady=20)
 
     def register(self):
-        uname = username.get()
-        pwd = password.get()
-        unamefield.delete(0, tk.END)
-        pwdfield.delete(0, tk.END)
+        uname = self.username.get()
+        pwd = self.password.get()
+        self.unameEntry.delete(0, tk.END)
+        self.pwdfield.delete(0, tk.END)
 
         logins = {}
         f = open('logins', 'r')
@@ -261,8 +251,16 @@ class mainScreen(tk.Frame):
         self.username = None
 
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Budget Home:", font=largeFont)
-        label.grid(pady=30, padx=50)
+
+        # Vertical frame for grid reference
+        vertframe = ttk.Frame(self, borderwidth=5, width=1, height=800) #relief="sunken",
+        vertframe.grid(column=0, row=1, columnspan=1, rowspan=30)
+        # Horizontal frame for grid reference
+        horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
+        horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
+        # Page title
+        label1 = tk.Label(self, text="Budget Homepage", font=gigaFont)
+        label1.grid(row=2, column=2, columnspan=15)
 
         # testButton = ttk.Button(self, text="test",
         #                         command=self.pr)
@@ -272,9 +270,59 @@ class mainScreen(tk.Frame):
         #                          command=lambda: print(usr))
         # test2Button.pack(side='top', pady=20)
 
-        # logoutButton = ttk.Button(self, text="Logout",
-        #                           command=lambda: controller.show_frame(homeScreen))
-        # logoutButton.pack(side='bottom', pady=20)
+        # Logout button
+        logoutButton = ttk.Button(self, text="Logout",
+                                  command=lambda: controller.show_frame(homeScreen))
+        logoutButton.grid(row=30, column=20, padx=(10,0), pady=(0,10)) #pady=(780,0), padx=400
+
+        # New transaction label
+        label2 = tk.Label(self, text="New Transaction", font=largeFont)
+        label2.grid(row=4, column=2, columnspan=15)
+
+        # Dropdown menu for transaction categories
+        self.category = tk.StringVar()
+        self.category.set('Misc')
+        popupMenu = ttk.OptionMenu(self, self.category, *categories)
+        menuLabel = tk.Label(self, text="Select a transaction category:", font=medFont)
+        menuLabel.grid(row=5, column=2, columnspan=15)
+        popupMenu.grid(row=6, column=2, rowspan=1, columnspan=15, sticky="ew")
+
+        # Notes
+        self.note = tk.StringVar()
+        label3 = tk.Label(self, text="Notes:", font=medFont)
+        label3.grid(row=7, column=2, columnspan=5)
+        self.notesEntry = ttk.Entry(self, textvariable=self.note)
+        self.notesEntry.grid(row=7, column=7, columnspan=10, sticky='ew')
+
+        # Amount
+        self.amount = tk.StringVar()
+        label4 = tk.Label(self, text="Amount ($):", font=medFont)
+        label4.grid(row=8, column=2, columnspan=5)
+        self.amountEntry = ttk.Entry(self, textvariable=self.amount)
+        self.amountEntry.grid(row=8, column=7, columnspan=10, sticky='ew')
+
+        # Add Transaction
+        transactionButton = ttk.Button(self, text="Add Transaction",
+                                  command=self.add_transaction)
+        transactionButton.grid(row=9, column=8, padx=(20,0))
+
+    def add_transaction(self):
+
+        tcat = self.category.get()
+        tnote = self.note.get()
+        try:
+            tamt = round(float(self.amount.get()), 2)
+        except ValueError:
+            alert("Amount must be a number!")
+            return 
+
+        self.amountEntry.delete(0, tk.END)
+        self.notesEntry.delete(0, tk.END)
+
+        if tnote.strip() == '':
+            alert("Note field cannot be empty!")
+
+        
 
     def pr(self):
         # print(self.bud_nums)
@@ -294,6 +342,16 @@ class mainScreen(tk.Frame):
         transactions = pd.read_csv(path, index_col=0)
         print(bud_nums)
         print(transactions)
+
+class pieScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Pie Chart of Spending:", font=largeFont)
+        label.grid(pady=30, padx=50)
+
+        # logoutButton = ttk.Button(self, text="OK",
+        #                           command=lambda: controller.show_frame(mainScreen))
+        # logoutButton.pack(side='bottom', pady=20)
 
 
 if __name__ == "__main__":
