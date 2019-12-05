@@ -33,7 +33,7 @@ directory = os.getcwd()
 banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
 
 categories = ['Misc', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
-transaction_info = ['date', 'type', 'note', 'amt', 'y', 'm', 'd']
+transaction_info = ['Date', 'Type', 'Note', 'Amount', 'y', 'm', 'd']
 
 
 def alert(message):
@@ -247,7 +247,6 @@ class registerScreen(tk.Frame):
                 'Subscriptions': [0],
                 'Entertainment': [0]})
             info_df = info_df.append(temp)
-            print(info_df)
             info_filepath = './profiles/' + uname + '.csv'
             info_df.to_csv(info_filepath)
 
@@ -331,8 +330,20 @@ class mainScreen(tk.Frame):
         transactionButton.grid(row=12, column=8, padx=(20, 0))
 
         # Text widget for displaying transaction history
-        self.history = tk.Text(self, height=20, width=70)
-        self.history.grid(row=2, column = 20, rowspan=10, columnspan=20)
+        self.history1 = tk.Text(self, height=20, width=20)
+        self.history1.grid(row=2, column = 21, rowspan=10, columnspan=4)
+        self.history2 = tk.Text(self, height=20, width=20)
+        self.history2.tag_configure("center", justify='right')
+        self.history2.tag_add("center", 1.0, "end")
+        self.history2.grid(row=2, column = 25, rowspan=10, columnspan=5)
+        self.history3 = tk.Text(self, height=20, width=20)
+        self.history3.grid(row=2, column = 30, rowspan=10, columnspan=5)
+        self.history3.tag_configure("center", justify='right')
+        self.history3.tag_add("center", 1.0, "end")
+        self.history4 = tk.Text(self, height=20, width=20)
+        self.history4.grid(row=2, column = 35, rowspan=10, columnspan=5)
+        self.history4.tag_configure("center", justify='right')
+        self.history4.tag_add("center", 1.0, "end")
 
     def write_name(self):
         welcome = "Welcome " + self.username + "!"
@@ -348,6 +359,9 @@ class mainScreen(tk.Frame):
             self.amountEntry.delete(0, tk.END)
             return
 
+        if tamt > 999999:
+            tamt = "{:.2E}".format(Decimal(tamt))
+
         self.amountEntry.delete(0, tk.END)
         self.notesEntry.delete(0, tk.END)
 
@@ -355,16 +369,15 @@ class mainScreen(tk.Frame):
             alert("Note field cannot be empty!")
         else:
             temp = pd.DataFrame({
-                'date': [currentDate],
-                'type': [tcat],
-                'note': [tnote],
-                'amt': [tamt],
+                'Date': [currentDate],
+                'Type': [tcat],
+                'Note': [tnote],
+                'Amount': [tamt],
                 'y': [int(currentYear)],
                 'm': [int(currentMonth)],
                 'd': [int(currentDay)]
                 })
             self.transactions = self.transactions.append(temp)
-            # self.transactions.amt = self.transactions.amt.round(2)
             print(self.transactions)
             path = './profiles/' + self.username + '_transactions.csv'
             self.transactions.to_csv(path)
@@ -385,9 +398,21 @@ class mainScreen(tk.Frame):
         self.controller.show_frame(pieScreen)
 
     def tracker(self):
+        
+        self.history1.delete('1.0', tk.END)
+        self.history2.delete('1.0', tk.END)
+        self.history3.delete('1.0', tk.END)
+        self.history4.delete('1.0', tk.END)
+
+        if self.transactions.size == 0:
+            self.history1.insert(tk.END, "")
+            return
+
         last15 = self.transactions.tail(10)
-        last15 = last15[['date', 'type', 'note', 'amt']]
-        self.history.insert(tk.END, str(last15))
+        self.history1.insert(tk.END, last15[['Date']].to_string(index=False))
+        self.history2.insert(tk.END, last15[['Type']].to_string(index=False))
+        self.history3.insert(tk.END, last15[['Note']].to_string(index=False))
+        self.history4.insert(tk.END, last15[['Amount']].to_string(index=False))
 
 
 class pieScreen(tk.Frame):
