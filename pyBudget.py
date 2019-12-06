@@ -458,7 +458,6 @@ class mainScreen(tk.Frame):
                 })
 
             self.transactions = self.transactions.append(temp)
-            # print(self.transactions)
             path = './profiles/' + self.username + '_transactions.csv'
             self.transactions.to_csv(path)
 
@@ -471,8 +470,6 @@ class mainScreen(tk.Frame):
         self.bud_nums = pd.read_csv(path, index_col=0)
         path = './profiles/' + self.username + '_transactions.csv'
         self.transactions = pd.read_csv(path, index_col=0)
-        # print(self.bud_nums)
-        # print(self.transactions)
 
     def pieplot(self):
         self.controller.frames[pieScreen].plot()
@@ -617,6 +614,7 @@ class barScreen(tk.Frame):
         self.bud_nums = None
         self.username = None
         self.budget_total = 0
+        self.budget = None
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
@@ -677,6 +675,9 @@ class barScreen(tk.Frame):
                                     columnspan=45, sticky='ew')
 
     def start(self):
+        self.fig.clf()
+        self.fig2.clf()
+
         self.username = self.controller.frames[mainScreen].username
         path = './profiles/' + self.username + '.csv'
         self.bud_nums = pd.read_csv(path, index_col=0)
@@ -697,25 +698,26 @@ class barScreen(tk.Frame):
         self.yearmenu['values'] = years
         self.yearmenu.current(0)
 
-        budget = {}
+        self.budget = {}
         self.budget_total = 0
         for i in categories:
-            budget[i] = self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
-            self.budget_total =\
+            self.budget[i] =\
+                self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
+            self.budget_total +=\
                 self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
 
         self.fig.clf()
         self.sub = self.fig.add_subplot(111)
-        # self.transactions = self.controller.frames[mainScreen].transactions
 
         left_pos = 0
         width = 0.5
-        for i in budget.keys():
-            self.sub.barh('Your Budget', budget[i], width,
+        for i in self.budget.keys():
+            self.sub.barh('Your Budget', self.budget[i], width,
                           align='center', label=i, left=left_pos)
-            left_pos += budget[i]
+            left_pos += self.budget[i]
 
-        self.sub.legend(ncol=len(budget))
+        self.sub.legend(ncol=len(self.budget))
+        self.sub.set_xlim([0, 1.1 * self.budget_total])
         self.canvas.draw()
 
     def go(self):
@@ -724,9 +726,13 @@ class barScreen(tk.Frame):
         data = self.transactions[(self.transactions['y'] == year) &
                                  (self.transactions['m'] == month)]
 
+        spending_total = 0
         spending = {}
         for i in categories:
             spending[i] = data.loc[data['Type'] == i, 'Amount'].sum()
+            spending_total += data.loc[data['Type'] == i, 'Amount'].sum()
+
+        xmax = max(spending_total, self.budget_total)
 
         self.fig2.clf()
         self.sub2 = self.fig2.add_subplot(111)
@@ -739,8 +745,22 @@ class barScreen(tk.Frame):
             left_pos += spending[i]
 
         self.sub2.legend(ncol=len(spending))
-        self.sub2.set_xlim([0, self.budget_total])
+        self.sub2.set_xlim([0, 1.1 * xmax])
         self.canvas2.draw()
+
+        # Redraw budget
+        self.fig.clf()
+        self.sub = self.fig.add_subplot(111)
+
+        left_pos = 0
+        for i in self.budget.keys():
+            self.sub.barh('Your Budget', self.budget[i], width,
+                          align='center', label=i, left=left_pos)
+            left_pos += self.budget[i]
+
+        self.sub.legend(ncol=len(self.budget))
+        self.sub.set_xlim([0, 1.1 * xmax])
+        self.canvas.draw()
 
 
 class budgetScreen(tk.Frame):
