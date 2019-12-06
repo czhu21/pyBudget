@@ -60,7 +60,7 @@ class pyBudget(tk.Tk):
 
         self.frames = {}
 
-        for i in (homeScreen, loginScreen, registerScreen, mainScreen, pieScreen):
+        for i in (homeScreen, loginScreen, registerScreen, mainScreen, pieScreen, budgetScreen):
             frame = i(container, self)
             self.frames[i] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -271,16 +271,22 @@ class mainScreen(tk.Frame):
         # Horizontal frame for grid reference
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
         horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
-        # Page title
-        label1 = tk.Label(self, text="Budget Homepage", font=gigaFont)
-        label1.grid(row=2, column=2, columnspan=15)
         # Username
         self.namelabel = tk.Label(self, text="", font=largeFont)
-        self.namelabel.grid(row=3, column=2, columnspan=15)
+        self.namelabel.grid(row=2, column=2, columnspan=15)
+
+        toBudget = ttk.Button(self, text="Edit Budget",
+                                  command=lambda: controller.show_frame(budgetScreen))
+        toBudget.grid(row=3, column=2, columnspan=15)
+
+        # Page title
+        # label1 = tk.Label(self, text="Your Transactions:", font=gigaFont)
+        # label1.grid(row=3, column=2, columnspan=15)
+        
         # Logout button
         logoutButton = ttk.Button(self, text="Logout",
                                   command=lambda: controller.show_frame(homeScreen))
-        logoutButton.grid(row=30, column=20, padx=(10, 0), pady=(0, 10))
+        logoutButton.grid(row=0, column=0, padx=(0, 0), pady=(0, 0), sticky='ew')
 
         # New transaction label
         label2 = tk.Label(self, text="New Transaction", font=largeFont)
@@ -311,37 +317,37 @@ class mainScreen(tk.Frame):
         label3 = tk.Label(self, text="Notes:", font=medFont)
         label3.grid(row=7, column=2, columnspan=5, sticky='w')
         self.notesEntry = ttk.Entry(self, textvariable=self.note)
-        self.notesEntry.grid(row=7, column=7, columnspan=10, sticky='ew')
+        self.notesEntry.grid(row=7, column=7, columnspan=9, sticky='e')
 
         # Amount
         self.amount = tk.StringVar()
-        label4 = tk.Label(self, text="Amount ($):", font=medFont)
+        label4 = tk.Label(self, text="Amount:", font=medFont)
         label4.grid(row=8, column=2, columnspan=5, sticky='w')
         self.amountEntry = ttk.Entry(self, textvariable=self.amount)
-        self.amountEntry.grid(row=8, column=7, columnspan=10, sticky='ew')
+        self.amountEntry.grid(row=8, column=7, columnspan=9, sticky='e')
 
         # Add Transaction
         transactionButton = ttk.Button(self, text="Add Transaction",
                                        command=self.add_transaction)
-        transactionButton.grid(row=9, column=8, padx=(20, 0))
+        transactionButton.grid(row=9, column=2, columnspan=15)
 
         # View Pie Chart of Transactions
-        transactionButton = ttk.Button(self, text="Pie Chart",
+        transactionButton = ttk.Button(self, text="View Current Month Spending",
                                        command=self.pieplot)
         transactionButton.grid(row=12, column=8, padx=(20, 0))
 
         # Text widget for displaying transaction history
         self.history1 = tk.Text(self, height=24, width=20)
-        self.history1.grid(row=3, column = 21, rowspan=7, columnspan=4)
+        self.history1.grid(row=3, column=22, rowspan=7, columnspan=5)
         
         self.history2 = tk.Text(self, height=24, width=20)
-        self.history2.grid(row=3, column = 25, rowspan=7, columnspan=5)
+        self.history2.grid(row=3, column=27, rowspan=7, columnspan=6)
         
-        self.history3 = tk.Text(self, height=24, width=20)
-        self.history3.grid(row=3, column = 30, rowspan=7, columnspan=5)
+        self.history3 = tk.Text(self, height=24, width=24)
+        self.history3.grid(row=3, column=33, rowspan=7, columnspan=7)
         
         self.history4 = tk.Text(self, height=24, width=20)
-        self.history4.grid(row=3, column = 35, rowspan=7, columnspan=5)
+        self.history4.grid(row=3, column=40, rowspan=7, columnspan=5)
         
 
     def write_name(self):
@@ -359,13 +365,12 @@ class mainScreen(tk.Frame):
             return
 
         if tamt > 999999:
-            # tamt = "{:.2E}".format(Decimal(tamt))
             alert("You don't have that much money.")
             self.amountEntry.delete(0, tk.END)
             return
         
-        if len(tnote) > 12:
-            alert("Note length must be <12 characters!")
+        if len(tnote) > 20:
+            alert("Note length must be <20 characters!")
             self.notesEntry.delete(0, tk.END)
             return
 
@@ -412,13 +417,24 @@ class mainScreen(tk.Frame):
         self.history4.delete('1.0', tk.END)
 
         if self.transactions.size == 0:
-            self.history1.insert(tk.END, "")
+            self.history1.insert(tk.END, "Date")
+            self.history1.tag_configure("right", justify='right')
+            self.history1.tag_add("right", 1.0, "end")
+            self.history2.insert(tk.END, "Type")
+            self.history2.tag_configure("right", justify='right')
+            self.history2.tag_add("right", 1.0, "end")
+            self.history3.insert(tk.END, "Note")
+            self.history3.tag_configure("right", justify='right')
+            self.history3.tag_add("right", 1.0, "end")
+            self.history4.insert(tk.END, "Amount")
+            self.history4.tag_configure("right", justify='right')
+            self.history4.tag_add("right", 1.0, "end")
             return
 
         last25 = self.transactions.tail(25)
         self.history1.insert(tk.END, last25[['Date']].to_string(index=False))
-        self.history1.tag_configure("right", justify='right')
-        self.history1.tag_add("right", 1.0, "end")
+        self.history1.tag_configure("left", justify='left')
+        self.history1.tag_add("left", 1.0, "end")
         # self.history1.tag_configure("bold", font=('bold'))
         # self.history1.tag_add("bold", "1.0", "1.2")
 
@@ -460,8 +476,71 @@ class pieScreen(tk.Frame):
         print('yes')
 
 
+class budgetScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        self.controller = controller
+        tk.Frame.__init__(self, parent)
+       
+        # Vertical frame for grid reference
+        vertframe = ttk.Frame(self, borderwidth=5, width=1, height=800)
+        vertframe.grid(column=0, row=1, columnspan=1, rowspan=30)
+        # Horizontal frame for grid reference
+        horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
+        horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
+
+        mainButton = ttk.Button(self, text="Back",
+                                command=lambda: controller.show_frame(mainScreen))
+        mainButton.grid(row=0, column=0, padx=(0, 0), pady=(0, 0), sticky='ew')
+        
+        title = tk.Label(self, text="Edit your budget:", font=largeFont)
+        title.grid(row=2, column=2, columnspan=2)
+        
+        # Bills
+        self.bills = tk.StringVar()
+        label1 = tk.Label(self, text="Bills:", font=medFont)
+        label1.grid(row=4, column=2, columnspan=1, sticky='w')
+        self.billsEntry = ttk.Entry(self, textvariable=self.bills)
+        self.billsEntry.grid(row=4, column=3)
+
+        # Food
+        self.food = tk.StringVar()
+        label1 = tk.Label(self, text="Food:", font=medFont)
+        label1.grid(row=5, column=2, columnspan=1, sticky='w')
+        self.foodEntry = ttk.Entry(self, textvariable=self.food)
+        self.foodEntry.grid(row=5, column=3)
+
+        # Subscriptions
+        self.subscriptions = tk.StringVar()
+        label1 = tk.Label(self, text="Subscriptions:", font=medFont)
+        label1.grid(row=6, column=2, columnspan=1, sticky='w')
+        self.subscriptionsEntry = ttk.Entry(self, textvariable=self.subscriptions)
+        self.subscriptionsEntry.grid(row=6, column=3)
+
+        # Entertainment
+        self.entertainment = tk.StringVar()
+        label1 = tk.Label(self, text="Entertainment:", font=medFont)
+        label1.grid(row=7, column=2, columnspan=1, sticky='w')
+        self.entertainmentEntry = ttk.Entry(self, textvariable=self.entertainment)
+        self.entertainmentEntry.grid(row=7, column=3)
+
+        # Misc
+        self.misc = tk.StringVar()
+        label1 = tk.Label(self, text="Miscellaneous:", font=medFont)
+        label1.grid(row=8, column=2, columnspan=1, sticky='w')
+        self.miscEntry = ttk.Entry(self, textvariable=self.misc)
+        self.miscEntry.grid(row=8, column=3)
+
+        # Save
+        transactionButton = ttk.Button(self, text="Save Changes",
+                                       command=self.save)
+        transactionButton.grid(row=9, column=2, columnspan=2, sticky='ew')
+
+    def save(self):
+        print(self.controller.frames[mainScreen].username)
+
+
 if __name__ == "__main__":
     window = pyBudget()
     window.title("pyBudget")
-    window.wm_geometry("1100x640")
+    window.wm_geometry("1200x640")
     window.mainloop()
