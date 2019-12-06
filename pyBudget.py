@@ -14,6 +14,7 @@ import hashlib
 from copy import deepcopy
 from datetime import date
 from calendar import month_name
+import numpy as np
 
 matplotlib.use("TkAgg")
 # Format float values into money format ($x.yz)
@@ -34,8 +35,11 @@ smallFont = ("Calibri", 8)
 
 # Set global lists for reference
 banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
-categories = ['Misc', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
+categories = ['Bills', 'Food', 'Subscriptions', 'Entertainment', 'Misc']
 transaction_info = ['Date', 'Type', 'Note', 'Amount', 'y', 'm', 'd']
+months = {}
+for i in range(1, 13):
+    months[month_name[i]] = i
 
 
 def alert(message):
@@ -109,7 +113,8 @@ class homeScreen(tk.Frame):
 
         label = tk.Label(self, text="Welcome to pyBudget!", font=gigaFont)
         label.pack(pady=(200, 0), padx=10)
-        label = tk.Label(self, text="A Tkinter-based budgeting app by Casey Zhu", font=medFont)
+        t = "A Tkinter-based budgeting app by Casey Zhu"
+        label = tk.Label(self, text=t, font=medFont)
         label.pack(pady=(2, 20), padx=10)
 
         button = ttk.Button(self, text="Login Existing User",
@@ -151,7 +156,8 @@ class loginScreen(tk.Frame):
         # Set up password entry field
         pwd = tk.Label(self, text="Password:")
         pwd.pack()
-        self.pwdfield_try = ttk.Entry(self, textvariable=self.password_try, show='*')
+        self.pwdfield_try = ttk.Entry(self, textvariable=self.password_try,
+                                      show='*')
         self.pwdfield_try.pack()
 
         # Set up login execution button to call login()
@@ -232,7 +238,8 @@ class registerScreen(tk.Frame):
         self.controller = controller
         tk.Frame.__init__(self, parent)
 
-        label = tk.Label(self, text="Enter a username and password to register a new account:", font=largeFont)
+        t = "Enter a username and password to register a new account:"
+        label = tk.Label(self, text=t, font=largeFont)
         label.pack(pady=(200, 10), padx=10)
 
         self.username = tk.StringVar()
@@ -559,15 +566,22 @@ class pieScreen(tk.Frame):
         self.fig = Figure(figsize=(7, 6), dpi=105)
 
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=20, columnspan=45, sticky='ew')
-        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=20, columnspan=45, sticky='ew')
+        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=20,
+                                         columnspan=45, sticky='ew')
+        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=20,
+                                   columnspan=45, sticky='ew')
 
     def plot(self):
         self.fig.clf()
         self.sub = self.fig.add_subplot(111)
         self.transactions = self.controller.frames[mainScreen].transactions
 
-        data = self.transactions[(self.transactions['y'] == currentYear) & (self.transactions['m'] == currentMonth)]
+        data = self.transactions[(self.transactions['y'] == currentYear) &
+                                 (self.transactions['m'] == currentMonth)]
+
+        if data.size == 0:
+            alert('No transactions this month!')
+            return
 
         bills = data.loc[data['Type'] == 'Bills', 'Amount'].sum()
         food = data.loc[data['Type'] == 'Food', 'Amount'].sum()
@@ -596,7 +610,8 @@ class barScreen(tk.Frame):
     def __init__(self, parent, controller):
         self.controller = controller
         self.transactions = None
-        self.budget = None
+        self.bud_nums = None
+        self.username = None
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
@@ -606,46 +621,85 @@ class barScreen(tk.Frame):
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
         horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
 
-        t = "Spending breakdown for the month of %s, %d" % (month_name[currentMonth], currentYear)
+        # Title
+        t = "Select a year and month to view spending totals"
         label = tk.Label(self, text=t, font=gigaFont)
-        label.grid(row=0, column=1, columnspan=50, sticky='ew')
+        label.grid(row=0, column=0, columnspan=50, sticky='ew')
 
+        # Button to go back to mainScreen
         mainButton = ttk.Button(self, text="OK",
                                 command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=0, column=0, sticky='nw', padx=(0, 0))
 
-        self.fig = Figure(figsize=(7, 6), dpi=105)
+        # Year selection box
+        self.yearselection = tk.StringVar()
+        self.yearmenu = ttk.Combobox(self, textvariable=self.yearselection,
+                                     state='readonly')
+        self.yearmenu['values'] = [2019]
+        self.yearmenu.current(0)
+        self.yearmenu.grid(row=1, column=14, rowspan=1,
+                           columnspan=6, sticky="ew")
 
+        # Month selection box
+        self.monthselection = tk.StringVar()
+        self.monthmenu = ttk.Combobox(self, textvariable=self.monthselection,
+                                      state='readonly')
+        self.monthmenu['values'] = ['jan', 'feb']
+        self.monthmenu.current(0)
+        self.monthmenu.grid(row=1, column=22, rowspan=1,
+                            columnspan=6, sticky="ew")
+
+        # Go button
+        goButton = ttk.Button(self, text="Go",
+                              command=self.go)
+        goButton.grid(row=1, column=30, sticky='ew', padx=(0, 0))
+
+
+
+
+
+
+        self.fig = Figure(figsize=(7, 3), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=20, columnspan=45, sticky='ew')
-        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=20, columnspan=45, sticky='ew')
+        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=10,
+                                         columnspan=45, sticky='ew')
+        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=10,
+                                   columnspan=45, sticky='ew')
+
+        self.fig2 = Figure(figsize=(7, 3), dpi=100)
+        self.canvas2 = FigureCanvasTkAgg(self.fig2, self)
+        self.canvas2.get_tk_widget().grid(row=12, column=1, rowspan=10,
+                                          columnspan=45, sticky='ew')
+        self.canvas2._tkcanvas.grid(row=12, column=1, rowspan=10,
+                                    columnspan=45, sticky='ew')
 
     def start(self):
+        self.username = self.controller.frames[mainScreen].username
+        path = './profiles/' + self.username + '.csv'
+        self.bud_nums = pd.read_csv(path, index_col=0)
+        path = './profiles/' + self.username + '_transactions.csv'
+        self.transactions = pd.read_csv(path, index_col=0)
+
+        budget = {}
+        for i in categories:
+            budget[i] = self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
+
+        self.fig.clf()
+        self.sub = self.fig.add_subplot(111)
+        self.transactions = self.controller.frames[mainScreen].transactions
+
+        left_pos = 0
+        width = 0.5
+        for i in budget.keys():
+            self.sub.barh('Your Budget', budget[i], width,
+                          align='center', label=i, left=left_pos)
+            left_pos += budget[i]
+
+        self.sub.legend(ncol=len(budget))
+        self.canvas.draw()
+
+    def go(self):
         pass
-        # self.fig.clf()
-        # self.sub = self.fig.add_subplot(111)
-        # self.transactions = self.controller.frames[mainScreen].transactions
-
-        # data = self.transactions[(self.transactions['y'] == currentYear) & (self.transactions['m'] == currentMonth)]
-
-        # bills = data.loc[data['Type'] == 'Bills', 'Amount'].sum()
-        # food = data.loc[data['Type'] == 'Food', 'Amount'].sum()
-        # subs = data.loc[data['Type'] == 'Subscriptions', 'Amount'].sum()
-        # ent = data.loc[data['Type'] == 'Entertainment', 'Amount'].sum()
-        # misc = data.loc[data['Type'] == 'Misc', 'Amount'].sum()
-
-        # labels = categories
-        # sizes = [misc, bills, food, subs, ent]
-
-        # def val(i):
-        #     amt = round(i / 100 * sum(sizes), 0)
-        #     amt = '${:,.2f}'.format(amt)
-        #     return(amt)
-
-        # self.sub.pie(sizes, labels=labels, autopct=val, startangle=90)
-        # self.sub.axis('equal')
-        # self.canvas.draw()
-
 
 class budgetScreen(tk.Frame):
     '''
@@ -691,14 +745,16 @@ class budgetScreen(tk.Frame):
         self.subscriptions = tk.StringVar()
         label1 = tk.Label(self, text="Subscriptions:", font=medFont)
         label1.grid(row=6, column=4, columnspan=1, sticky='w')
-        self.subscriptionsEntry = ttk.Entry(self, textvariable=self.subscriptions)
+        self.subscriptionsEntry = ttk.Entry(self,
+                                            textvariable=self.subscriptions)
         self.subscriptionsEntry.grid(row=6, column=5)
 
         # Entertainment budget entry
         self.entertainment = tk.StringVar()
         label1 = tk.Label(self, text="Entertainment:", font=medFont)
         label1.grid(row=7, column=4, columnspan=1, sticky='w')
-        self.entertainmentEntry = ttk.Entry(self, textvariable=self.entertainment)
+        self.entertainmentEntry = ttk.Entry(self,
+                                            textvariable=self.entertainment)
         self.entertainmentEntry.grid(row=7, column=5)
 
         # Misc budget entry
@@ -776,11 +832,14 @@ class budgetScreen(tk.Frame):
         self.bud_nums = self.controller.frames[mainScreen].bud_nums
         self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Bills')] = bills
         self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Food')] = food
-        self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Subscriptions')] = subs
-        self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Entertainment')] = ent
+        self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Subscriptions')]\
+            = subs
+        self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Entertainment')]\
+            = ent
         self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Misc')] = misc
 
-        filepath = './profiles/' + self.controller.frames[mainScreen].username + '.csv'
+        filepath = './profiles/'\
+            + self.controller.frames[mainScreen].username + '.csv'
         self.bud_nums.to_csv(filepath)
         self.loadBudget()
 
