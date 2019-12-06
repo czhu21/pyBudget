@@ -1,3 +1,7 @@
+# Casey Zhu
+# Software Carpentry Final Project
+# Designing a tkinter-based budgeting application
+
 import matplotlib.figure
 import matplotlib.patches
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -5,7 +9,6 @@ from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
 import tkinter as tk
 from tkinter import ttk
-import os
 import pandas as pd
 import hashlib
 from copy import deepcopy
@@ -13,39 +16,55 @@ from datetime import date
 from calendar import month_name
 
 matplotlib.use("TkAgg")
+# Format float values into money format ($x.yz)
 pd.options.display.float_format = '${:,.2f}'.format
 
+# Get date/date values
 today = date.today()
 currentDate = today.strftime("%Y/%m/%d")
 currentYear = int(today.strftime("%Y"))
 currentMonth = int(today.strftime("%m"))
 currentDay = int(today.strftime("%d"))
-print(currentDate)
 
+# Set fonts
 gigaFont = ("Calibri", 24, 'bold')
 largeFont = ("Calibri", 16)
 medFont = ("Calibri", 12)
 smallFont = ("Calibri", 8)
-directory = os.getcwd()
 
+# Set global lists for reference
 banned_chars = ['\\', ' ', '`', '\'', '"', '#', ":", ";", "|"]
 categories = ['Misc', 'Bills', 'Food', 'Subscriptions', 'Entertainment']
 transaction_info = ['Date', 'Type', 'Note', 'Amount', 'y', 'm', 'd']
 
 
 def alert(message):
+    '''
+    Creates popup alert message
 
+    **Parameters**
+        message: str
+            The message to display on the popup
+    '''
+
+    # Create popup window and send to top
     pop = tk.Toplevel()
     pop.wm_geometry("300x150")
 
+    # Add label and OK button to popup
     lab = tk.Label(pop, text=message)
-    lab.pack(pady=(35,20))
+    lab.pack(pady=(35, 20))
 
     okButton = ttk.Button(pop, text="OK", command=pop.destroy)
     okButton.pack(pady=10)
 
 
 class pyBudget(tk.Tk):
+    '''
+    pyBudget object that forms the structure of the various
+    frames in the program
+    '''
+
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         container = tk.Frame(self)
@@ -58,7 +77,8 @@ class pyBudget(tk.Tk):
 
         for i in (homeScreen, loginScreen,
                   registerScreen, mainScreen,
-                  pieScreen, budgetScreen):
+                  pieScreen, budgetScreen,
+                  barScreen):
             frame = i(container, self)
             self.frames[i] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -66,15 +86,23 @@ class pyBudget(tk.Tk):
         self.show_frame(homeScreen)
 
     def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
+        '''
+        Switches frame to the container input
 
-    def show_main(self):
-        frame = self.frames[mainScreen]
+        **Parameters**
+            cont: tk.Frame object
+                The frame we want to switch to
+        '''
+
+        frame = self.frames[cont]
         frame.tkraise()
 
 
 class homeScreen(tk.Frame):
+    '''
+    Object that defines the home screen
+    '''
+
     def __init__(self, parent, controller):
         self.controller = controller
         tk.Frame.__init__(self, parent)
@@ -98,47 +126,69 @@ class homeScreen(tk.Frame):
 
 
 class loginScreen(tk.Frame):
+    '''
+    Object that defines the login screen
+    '''
+
     def __init__(self, parent, controller):
         self.controller = controller
         tk.Frame.__init__(self, parent)
 
+        # Login label
         label = tk.Label(self, text="Login:", font=largeFont)
         label.pack(pady=(200, 10), padx=10)
 
+        # Define empty tk string objects to fill from entry fields
         self.username_try = tk.StringVar()
         self.password_try = tk.StringVar()
 
+        # Set up username entry field
         nameLabel = tk.Label(self, text="Username:")
         nameLabel.pack()
         self.unamefield_try = ttk.Entry(self, textvariable=self.username_try)
         self.unamefield_try.pack()
 
+        # Set up password entry field
         pwd = tk.Label(self, text="Password:")
         pwd.pack()
         self.pwdfield_try = ttk.Entry(self, textvariable=self.password_try, show='*')
         self.pwdfield_try.pack()
 
+        # Set up login execution button to call login()
         loginButton = ttk.Button(self, text="Login",
                                  command=self.login)
         loginButton.pack(pady=20)
 
+        # Set up home button to return to homeScreen
         homebutton = ttk.Button(self, text="Home",
                                 command=lambda: controller.show_frame(homeScreen))
         homebutton.pack(side='bottom', pady=20)
 
     def login(self):
-        self.uname = self.username_try.get()
+        '''
+        Executes login based on input username and password
+        from loginScreen.
 
+        **Parameters**
+            None
+        '''
+
+        # Get username and password from entry fields
+        self.uname = self.username_try.get()
         pwd = self.password_try.get()
+
+        # Clear entry fields
         self.unamefield_try.delete(0, tk.END)
         self.pwdfield_try.delete(0, tk.END)
 
+        # Load record of created profiles
         logins = {}
         f = open('logins', 'r')
         for line in f:
             logins[line.split()[0]] = line.split()[1]
         f.close()
 
+        # Authenticate input username and password
         if self.uname in logins.keys():
             pwd = pwd.encode('utf-8')
             hashed_pass = hashlib.sha512(pwd)
@@ -174,6 +224,10 @@ class loginScreen(tk.Frame):
 
 
 class registerScreen(tk.Frame):
+    '''
+    Object that defines the registration screen
+    '''
+
     def __init__(self, parent, controller):
         self.controller = controller
         tk.Frame.__init__(self, parent)
@@ -258,6 +312,10 @@ class registerScreen(tk.Frame):
 
 
 class mainScreen(tk.Frame):
+    '''
+    Object that defines the main screen
+    '''
+
     def __init__(self, parent, controller):
         self.controller = controller
         self.username = None
@@ -289,15 +347,6 @@ class mainScreen(tk.Frame):
         # New transaction label
         label2 = tk.Label(self, text="Add New Transaction:", font=largeFont)
         label2.grid(row=4, column=2, columnspan=15)
-
-        # Dropdown menu for transaction categories
-        # self.category = tk.StringVar()
-        # self.category.set('Misc')
-        # popupMenu = ttk.OptionMenu(self, self.category, *categories)
-        # menuLabel = tk.Label(self, text="Select a transaction category:",
-        #                      font=medFont)
-        # menuLabel.grid(row=5, column=2, columnspan=15)
-        # popupMenu.grid(row=6, column=2, rowspan=1, columnspan=15)
 
         self.category = tk.StringVar()
         # self.category.set('Misc')
@@ -333,6 +382,11 @@ class mainScreen(tk.Frame):
         transactionButton = ttk.Button(self, text="Current Month Spending",
                                        command=self.pieplot)
         transactionButton.grid(row=12, column=8, padx=(20, 0))
+
+        # View Bar Chart, comparing spending to budget
+        transactionButton = ttk.Button(self, text="Compare Spending w/ Budget",
+                                       command=self.barplot)
+        transactionButton.grid(row=13, column=8, padx=(20, 0))
 
         # Text widget for displaying transaction history
         # Date
@@ -392,10 +446,12 @@ class mainScreen(tk.Frame):
                 'm': [int(currentMonth)],
                 'd': [int(currentDay)]
                 })
+
             self.transactions = self.transactions.append(temp)
             # print(self.transactions)
             path = './profiles/' + self.username + '_transactions.csv'
             self.transactions.to_csv(path)
+
             self.tracker()
 
     def load_user(self, uname):
@@ -405,13 +461,16 @@ class mainScreen(tk.Frame):
         self.bud_nums = pd.read_csv(path, index_col=0)
         path = './profiles/' + self.username + '_transactions.csv'
         self.transactions = pd.read_csv(path, index_col=0)
-        print(self.bud_nums)
-        print(self.transactions)
+        # print(self.bud_nums)
+        # print(self.transactions)
 
     def pieplot(self):
         self.controller.frames[pieScreen].plot()
-        self.controller.frames[pieScreen].compare()
         self.controller.show_frame(pieScreen)
+
+    def barplot(self):
+        self.controller.frames[barScreen].start()
+        self.controller.show_frame(barScreen)
 
     def tracker(self):
         self.history1.config(state='normal')
@@ -442,8 +501,8 @@ class mainScreen(tk.Frame):
         last20 = self.transactions.tail(20)
         last20 = last20[::-1]
         self.history1.insert(tk.END, last20[['Date']].to_string(index=False))
-        self.history1.tag_configure("left", justify='left')
-        self.history1.tag_add("left", 1.0, "end")
+        self.history1.tag_configure("right", justify='right')
+        self.history1.tag_add("right", 1.0, "end")
         # self.history1.tag_configure("bold", font=('bold'))
         # self.history1.tag_add("bold", "1.0", "1.2")
 
@@ -471,6 +530,10 @@ class mainScreen(tk.Frame):
 
 
 class pieScreen(tk.Frame):
+    '''
+    Object that defines the pie chart screen
+    '''
+
     def __init__(self, parent, controller):
         self.controller = controller
         self.transactions = None
@@ -483,7 +546,8 @@ class pieScreen(tk.Frame):
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
         horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
 
-        t = "Spending breakdown for the month of " + month_name[currentMonth]
+        t = "Spending breakdown for the month of %s, %d" \
+            % (month_name[currentMonth], currentYear)
         label = tk.Label(self, text=t, font=gigaFont)
         label.grid(row=0, column=1, columnspan=45, sticky='ew')
 
@@ -503,7 +567,7 @@ class pieScreen(tk.Frame):
         self.sub = self.fig.add_subplot(111)
         self.transactions = self.controller.frames[mainScreen].transactions
 
-        data = self.transactions[(self.transactions['y']==currentYear) & (self.transactions['m']==currentMonth)]
+        data = self.transactions[(self.transactions['y'] == currentYear) & (self.transactions['m'] == currentMonth)]
 
         bills = data.loc[data['Type'] == 'Bills', 'Amount'].sum()
         food = data.loc[data['Type'] == 'Food', 'Amount'].sum()
@@ -523,11 +587,71 @@ class pieScreen(tk.Frame):
         self.sub.axis('equal')
         self.canvas.draw()
 
-    def compare(self):
-        print('compare called')
+
+class barScreen(tk.Frame):
+    '''
+    Object that defines the bar plot screen
+    '''
+
+    def __init__(self, parent, controller):
+        self.controller = controller
+        self.transactions = None
+        self.budget = None
+        tk.Frame.__init__(self, parent)
+
+        # Vertical frame for grid reference
+        vertframe = ttk.Frame(self, borderwidth=5, width=1, height=800)
+        vertframe.grid(column=0, row=1, columnspan=1, rowspan=30)
+        # Horizontal frame for grid reference
+        horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
+        horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
+
+        t = "Spending breakdown for the month of %s, %d" % (month_name[currentMonth], currentYear)
+        label = tk.Label(self, text=t, font=gigaFont)
+        label.grid(row=0, column=1, columnspan=50, sticky='ew')
+
+        mainButton = ttk.Button(self, text="OK",
+                                command=lambda: controller.show_frame(mainScreen))
+        mainButton.grid(row=0, column=0, sticky='nw', padx=(0, 0))
+
+        self.fig = Figure(figsize=(7, 6), dpi=105)
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self)
+        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=20, columnspan=45, sticky='ew')
+        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=20, columnspan=45, sticky='ew')
+
+    def start(self):
+        pass
+        # self.fig.clf()
+        # self.sub = self.fig.add_subplot(111)
+        # self.transactions = self.controller.frames[mainScreen].transactions
+
+        # data = self.transactions[(self.transactions['y'] == currentYear) & (self.transactions['m'] == currentMonth)]
+
+        # bills = data.loc[data['Type'] == 'Bills', 'Amount'].sum()
+        # food = data.loc[data['Type'] == 'Food', 'Amount'].sum()
+        # subs = data.loc[data['Type'] == 'Subscriptions', 'Amount'].sum()
+        # ent = data.loc[data['Type'] == 'Entertainment', 'Amount'].sum()
+        # misc = data.loc[data['Type'] == 'Misc', 'Amount'].sum()
+
+        # labels = categories
+        # sizes = [misc, bills, food, subs, ent]
+
+        # def val(i):
+        #     amt = round(i / 100 * sum(sizes), 0)
+        #     amt = '${:,.2f}'.format(amt)
+        #     return(amt)
+
+        # self.sub.pie(sizes, labels=labels, autopct=val, startangle=90)
+        # self.sub.axis('equal')
+        # self.canvas.draw()
 
 
 class budgetScreen(tk.Frame):
+    '''
+    Object that defines the budget control screen
+    '''
+
     def __init__(self, parent, controller):
         self.controller = controller
         self.username = None
@@ -549,42 +673,42 @@ class budgetScreen(tk.Frame):
         title = tk.Label(self, text="Edit your budget:", font=largeFont)
         title.grid(row=2, column=4, columnspan=2)
 
-        # Bills
+        # Bills budget entry
         self.bills = tk.StringVar()
         label1 = tk.Label(self, text="Bills:", font=medFont)
         label1.grid(row=4, column=4, columnspan=1, sticky='w')
         self.billsEntry = ttk.Entry(self, textvariable=self.bills)
         self.billsEntry.grid(row=4, column=5)
 
-        # Food
+        # Food budget entry
         self.food = tk.StringVar()
         label1 = tk.Label(self, text="Food:", font=medFont)
         label1.grid(row=5, column=4, columnspan=1, sticky='w')
         self.foodEntry = ttk.Entry(self, textvariable=self.food)
         self.foodEntry.grid(row=5, column=5)
 
-        # Subscriptions
+        # Subscriptions budget entry
         self.subscriptions = tk.StringVar()
         label1 = tk.Label(self, text="Subscriptions:", font=medFont)
         label1.grid(row=6, column=4, columnspan=1, sticky='w')
         self.subscriptionsEntry = ttk.Entry(self, textvariable=self.subscriptions)
         self.subscriptionsEntry.grid(row=6, column=5)
 
-        # Entertainment
+        # Entertainment budget entry
         self.entertainment = tk.StringVar()
         label1 = tk.Label(self, text="Entertainment:", font=medFont)
         label1.grid(row=7, column=4, columnspan=1, sticky='w')
         self.entertainmentEntry = ttk.Entry(self, textvariable=self.entertainment)
         self.entertainmentEntry.grid(row=7, column=5)
 
-        # Misc
+        # Misc budget entry
         self.misc = tk.StringVar()
         label1 = tk.Label(self, text="Miscellaneous:", font=medFont)
         label1.grid(row=8, column=4, columnspan=1, sticky='w')
         self.miscEntry = ttk.Entry(self, textvariable=self.misc)
         self.miscEntry.grid(row=8, column=5)
 
-        # Save
+        # Save input button
         transactionButton = ttk.Button(self, text="Save Changes",
                                        command=self.save)
         transactionButton.grid(row=9, column=5, columnspan=2,
