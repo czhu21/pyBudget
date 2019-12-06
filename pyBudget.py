@@ -6,7 +6,6 @@ import matplotlib.figure
 import matplotlib.patches
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from matplotlib import pyplot as plt
 import tkinter as tk
 from tkinter import ttk
 import pandas as pd
@@ -14,9 +13,9 @@ import hashlib
 from copy import deepcopy
 from datetime import date
 from calendar import month_name
-import numpy as np
 
 matplotlib.use("TkAgg")
+
 # Format float values into money format ($x.yz)
 pd.options.display.float_format = '${:,.2f}'.format
 
@@ -121,8 +120,9 @@ class homeScreen(tk.Frame):
                             command=lambda: controller.show_frame(loginScreen))
         button.pack(pady=10)
 
-        button2 = ttk.Button(self, text="Register New User",
-                             command=lambda: controller.show_frame(registerScreen))
+        button2 =\
+            ttk.Button(self, text="Register New User",
+                       command=lambda: controller.show_frame(registerScreen))
         button2.pack(pady=10)
 
         exitButton = ttk.Button(self, text="Exit Application",
@@ -166,8 +166,9 @@ class loginScreen(tk.Frame):
         loginButton.pack(pady=20)
 
         # Set up home button to return to homeScreen
-        homebutton = ttk.Button(self, text="Home",
-                                command=lambda: controller.show_frame(homeScreen))
+        homebutton =\
+            ttk.Button(self, text="Home",
+                       command=lambda: controller.show_frame(homeScreen))
         homebutton.pack(side='bottom', pady=20)
 
     def login(self):
@@ -260,8 +261,9 @@ class registerScreen(tk.Frame):
                                     command=self.register)
         registerButton.pack(pady=20)
 
-        homeButton = ttk.Button(self, text="Home",
-                                command=lambda: controller.show_frame(homeScreen))
+        homeButton =\
+            ttk.Button(self, text="Home",
+                       command=lambda: controller.show_frame(homeScreen))
         homeButton.pack(side='bottom', pady=20)
 
     def register(self):
@@ -347,8 +349,9 @@ class mainScreen(tk.Frame):
         # label1.grid(row=3, column=2, columnspan=15)
 
         # Logout button
-        logoutButton = ttk.Button(self, text="Logout",
-                                  command=lambda: controller.show_frame(homeScreen))
+        logoutButton =\
+            ttk.Button(self, text="Logout",
+                       command=lambda: controller.show_frame(homeScreen))
         logoutButton.grid(row=0, column=0, sticky='ew')
 
         # New transaction label
@@ -558,8 +561,9 @@ class pieScreen(tk.Frame):
         label = tk.Label(self, text=t, font=gigaFont)
         label.grid(row=0, column=1, columnspan=45, sticky='ew')
 
-        mainButton = ttk.Button(self, text="OK",
-                                command=lambda: controller.show_frame(mainScreen))
+        mainButton =\
+            ttk.Button(self, text="OK",
+                       command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=0, column=0, sticky='nw', padx=(0, 0))
         # mainButton.pack()
 
@@ -612,6 +616,7 @@ class barScreen(tk.Frame):
         self.transactions = None
         self.bud_nums = None
         self.username = None
+        self.budget_total = 0
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
@@ -627,15 +632,16 @@ class barScreen(tk.Frame):
         label.grid(row=0, column=0, columnspan=50, sticky='ew')
 
         # Button to go back to mainScreen
-        mainButton = ttk.Button(self, text="OK",
-                                command=lambda: controller.show_frame(mainScreen))
+        mainButton =\
+            ttk.Button(self, text="OK",
+                       command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=0, column=0, sticky='nw', padx=(0, 0))
 
         # Year selection box
         self.yearselection = tk.StringVar()
         self.yearmenu = ttk.Combobox(self, textvariable=self.yearselection,
                                      state='readonly')
-        self.yearmenu['values'] = [2019]
+        self.yearmenu['values'] = ['']
         self.yearmenu.current(0)
         self.yearmenu.grid(row=1, column=14, rowspan=1,
                            columnspan=6, sticky="ew")
@@ -644,33 +650,30 @@ class barScreen(tk.Frame):
         self.monthselection = tk.StringVar()
         self.monthmenu = ttk.Combobox(self, textvariable=self.monthselection,
                                       state='readonly')
-        self.monthmenu['values'] = ['jan', 'feb']
+        self.monthmenu['values'] = list(months.keys())
         self.monthmenu.current(0)
         self.monthmenu.grid(row=1, column=22, rowspan=1,
                             columnspan=6, sticky="ew")
 
         # Go button
-        goButton = ttk.Button(self, text="Go",
-                              command=self.go)
-        goButton.grid(row=1, column=30, sticky='ew', padx=(0, 0))
+        self.goButton = ttk.Button(self, text="Go",
+                                   command=self.go)
+        self.goButton.grid(row=1, column=30, sticky='ew', padx=(0, 0))
 
-
-
-
-
-
-        self.fig = Figure(figsize=(7, 3), dpi=100)
+        # Figure for graphing budget
+        self.fig = Figure(figsize=(7, 2), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=10,
+        self.canvas.get_tk_widget().grid(row=2, column=1, rowspan=8,
                                          columnspan=45, sticky='ew')
-        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=10,
+        self.canvas._tkcanvas.grid(row=2, column=1, rowspan=8,
                                    columnspan=45, sticky='ew')
 
-        self.fig2 = Figure(figsize=(7, 3), dpi=100)
+        # Figure for graphing spending
+        self.fig2 = Figure(figsize=(7, 2), dpi=100)
         self.canvas2 = FigureCanvasTkAgg(self.fig2, self)
-        self.canvas2.get_tk_widget().grid(row=12, column=1, rowspan=10,
+        self.canvas2.get_tk_widget().grid(row=12, column=1, rowspan=8,
                                           columnspan=45, sticky='ew')
-        self.canvas2._tkcanvas.grid(row=12, column=1, rowspan=10,
+        self.canvas2._tkcanvas.grid(row=12, column=1, rowspan=8,
                                     columnspan=45, sticky='ew')
 
     def start(self):
@@ -679,14 +682,31 @@ class barScreen(tk.Frame):
         self.bud_nums = pd.read_csv(path, index_col=0)
         path = './profiles/' + self.username + '_transactions.csv'
         self.transactions = pd.read_csv(path, index_col=0)
+        self.goButton['state'] = 'normal'
+
+        if self.transactions.size == 0:
+            alert("No transaction history available!")
+            self.goButton['state'] = 'disabled'
+            # self.controller.show_frame[mainScreen]
+            return
+
+        years = list(set(list(self.transactions['y'])))
+        for i, v in enumerate(years):
+            years[i] = int(v)
+        years = years[::-1]
+        self.yearmenu['values'] = years
+        self.yearmenu.current(0)
 
         budget = {}
+        self.budget_total = 0
         for i in categories:
             budget[i] = self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
+            self.budget_total =\
+                self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
 
         self.fig.clf()
         self.sub = self.fig.add_subplot(111)
-        self.transactions = self.controller.frames[mainScreen].transactions
+        # self.transactions = self.controller.frames[mainScreen].transactions
 
         left_pos = 0
         width = 0.5
@@ -699,7 +719,29 @@ class barScreen(tk.Frame):
         self.canvas.draw()
 
     def go(self):
-        pass
+        year = int(self.yearselection.get())
+        month = months[self.monthselection.get()]
+        data = self.transactions[(self.transactions['y'] == year) &
+                                 (self.transactions['m'] == month)]
+
+        spending = {}
+        for i in categories:
+            spending[i] = data.loc[data['Type'] == i, 'Amount'].sum()
+
+        self.fig2.clf()
+        self.sub2 = self.fig2.add_subplot(111)
+
+        left_pos = 0
+        width = 0.5
+        for i in spending.keys():
+            self.sub2.barh('Your Spending', spending[i], width,
+                           align='center', label=i, left=left_pos)
+            left_pos += spending[i]
+
+        self.sub2.legend(ncol=len(spending))
+        self.sub2.set_xlim([0, self.budget_total])
+        self.canvas2.draw()
+
 
 class budgetScreen(tk.Frame):
     '''
@@ -720,8 +762,9 @@ class budgetScreen(tk.Frame):
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
         horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
 
-        mainButton = ttk.Button(self, text="Back",
-                                command=lambda: controller.show_frame(mainScreen))
+        mainButton =\
+            ttk.Button(self, text="Back",
+                       command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=0, column=0, padx=(0, 0), pady=(0, 0), sticky='ew')
 
         title = tk.Label(self, text="Edit your budget:", font=largeFont)
