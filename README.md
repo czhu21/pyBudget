@@ -11,7 +11,11 @@ Run the pyBudget.py script, which will launch the GUI.
 ```
 $ python3 pyBudget.py
 ```
-In the home (launch) screen, you will have the option to login to an existing profile or create a new profile. Creating a profile invovles entering a username and password. Once you create a profile and login, you will be taken to the main screen. Here, you will have several options:
+In the home (launch) screen, you will have the option to login to an existing profile or create a new profile. Creating a profile invovles entering a username and password. 
+
+Note: a pre-made profile (username 'Software_Carpentry' password 'password123') has been included to play around with.
+
+Once you create a profile and login, you will be taken to the main screen. Here, you will have several options:
 
 1) Edit Budget - Here you will be able to change your budget amounts for each category. Clicking 'Save Changes' will update your profile with the new values and display them on the right.
 
