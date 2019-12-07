@@ -2,6 +2,10 @@
 # Software Carpentry Final Project
 # Designing a tkinter-based budgeting application
 
+# For dummy data:
+# Username 'Software_Carpentry'
+# Password 'password123'
+
 import matplotlib.figure
 import matplotlib.patches
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -10,7 +14,6 @@ import tkinter as tk
 from tkinter import ttk
 import pandas as pd
 import hashlib
-from copy import deepcopy
 from datetime import date
 from calendar import month_name
 
@@ -196,17 +199,19 @@ class loginScreen(tk.Frame):
         f.close()
 
         # Authenticate input username and password
+        # Check if username is valid
         if self.uname in logins.keys():
+            # Hash password input
             pwd = pwd.encode('utf-8')
             hashed_pass = hashlib.sha512(pwd)
             digest = hashed_pass.hexdigest()
 
             if digest == logins[self.uname]:
+                # If password is correct for user, load dfs and mainScreen
                 self.controller.frames[mainScreen].load_user(self.uname)
                 self.controller.frames[mainScreen].write_name()
                 self.controller.frames[mainScreen].tracker()
-                global usr
-                usr = deepcopy(self.uname)
+
                 self.controller.show_frame(mainScreen)
 
             else:
@@ -239,39 +244,52 @@ class registerScreen(tk.Frame):
         self.controller = controller
         tk.Frame.__init__(self, parent)
 
+        # Registration title
         t = "Enter a username and password to register a new account:"
         label = tk.Label(self, text=t, font=largeFont)
         label.pack(pady=(200, 10), padx=10)
 
+        # Initialize username/password inputs
         self.username = tk.StringVar()
         self.password = tk.StringVar()
 
+        # Username entry label and field
         uname = tk.Label(self, text="Username:")
         uname.pack()
         self.unameEntry = ttk.Entry(self, textvariable=self.username)
         self.unameEntry.pack()
         self.unameEntry.focus_set()
 
+        # Password entry label and field
         pwd = tk.Label(self, text="Password:")
         pwd.pack()
         self.pwdfield = ttk.Entry(self, textvariable=self.password, show='*')
         self.pwdfield.pack()
 
+        # Register button, calls self.register()
         registerButton = ttk.Button(self, text="Register",
                                     command=self.register)
         registerButton.pack(pady=20)
 
+        # Button to go to homeScreen
         homeButton =\
             ttk.Button(self, text="Home",
                        command=lambda: controller.show_frame(homeScreen))
         homeButton.pack(side='bottom', pady=20)
 
     def register(self):
+        '''
+        Checks if given username/password are valid
+        Adds to logins file if so, creates
+        dataframes for user to track transactions/budget
+        '''
+
         uname = self.username.get()
         pwd = self.password.get()
         self.unameEntry.delete(0, tk.END)
         self.pwdfield.delete(0, tk.END)
 
+        # Get list of registered logins
         logins = {}
         f = open('logins', 'r')
         for line in f:
@@ -294,6 +312,8 @@ class registerScreen(tk.Frame):
             alert("Password field cannot be empty!")
 
         else:
+            # Encrypts password, adds username and password
+            # to logins file
             pwd = pwd.encode('utf-8')
             hashed = hashlib.sha512(pwd)
             digest = hashed.hexdigest()
@@ -301,6 +321,7 @@ class registerScreen(tk.Frame):
             with open('logins', 'a') as f:
                 f.write(uname + " " + digest + "\n")
 
+            # Create and save dataframes to track user actions
             info_df = pd.DataFrame(columns=categories)
             temp = pd.DataFrame({
                 'Misc': [0.0],
@@ -418,12 +439,31 @@ class mainScreen(tk.Frame):
         self.history4.config(state='disabled')
 
     def write_name(self):
+        '''
+        Prints username to mainscreen welcome message
+
+        **Parameters**
+            None
+        '''
+
         welcome = "Welcome " + self.username + "!"
         self.namelabel.config(text=welcome)
 
     def add_transaction(self):
+        '''
+        Adds a transaction to the user's transaction
+        history.
+        Refreshes transaction tracker at the end.
+
+        **Parameters**
+            None
+        '''
+
+        # Get input transaction category, note, and amount
         tcat = self.category.get()
         tnote = self.note.get()
+
+        # Check if amount is valid
         try:
             tamt = round(float(self.amount.get()), 2)
         except ValueError:
@@ -432,18 +472,24 @@ class mainScreen(tk.Frame):
             return
 
         if tamt > 999999:
+            # Let's be realistic here.
+            # No one that rich is using my application.
             alert("""You don't have that much money.""")
             self.amountEntry.delete(0, tk.END)
             return
 
+        # Check if note is valid
         if len(tnote) > 20:
             alert("Note length must be <20 characters!")
             self.notesEntry.delete(0, tk.END)
             return
 
+        # Clear entry fields
         self.amountEntry.delete(0, tk.END)
         self.notesEntry.delete(0, tk.END)
 
+        # If all are valid, prepare df of transaction information
+        # and add df to existing transaction history
         if tnote.strip() == '':
             alert("Note field cannot be empty!")
         else:
@@ -461,9 +507,18 @@ class mainScreen(tk.Frame):
             path = './profiles/' + self.username + '_transactions.csv'
             self.transactions.to_csv(path)
 
+            # Refresh tracker to print new transaction
             self.tracker()
 
     def load_user(self, uname):
+        '''
+        Load transaction history and budget information for a user
+
+        **Parameters**
+            uname: str
+                The current user's username
+        '''
+
         self.username = uname
 
         path = './profiles/' + self.username + '.csv'
@@ -472,24 +527,50 @@ class mainScreen(tk.Frame):
         self.transactions = pd.read_csv(path, index_col=0)
 
     def pieplot(self):
+        '''
+        Method to transition from mainScreen to pieScreen
+        Calls plot() method from pieScreen class
+
+        **Parameters**
+            None
+        '''
+
         self.controller.frames[pieScreen].plot()
         self.controller.show_frame(pieScreen)
 
     def barplot(self):
+        '''
+        Method to transition from mainScreen to barScreen
+        Calls start() method from barScreen
+
+        **Parameters**
+            None
+        '''
+
         self.controller.frames[barScreen].start()
         self.controller.show_frame(barScreen)
 
     def tracker(self):
+        '''
+        Gets transaction history and displays to screen
+
+        **Parameters**
+            None
+        '''
+
+        # Set textboxes to normal state so text can be inserted
         self.history1.config(state='normal')
         self.history2.config(state='normal')
         self.history3.config(state='normal')
         self.history4.config(state='normal')
 
+        # Clear all content in text boxes
         self.history1.delete('1.0', tk.END)
         self.history2.delete('1.0', tk.END)
         self.history3.delete('1.0', tk.END)
         self.history4.delete('1.0', tk.END)
 
+        # Check in case transaction history is empty
         if self.transactions.size == 0:
             self.history1.insert(tk.END, "Date")
             self.history1.tag_configure("right", justify='right')
@@ -505,13 +586,13 @@ class mainScreen(tk.Frame):
             self.history4.tag_add("right", 1.0, "end")
             return
 
+        # Get most recent 20 transactions
+        # Add info (date, type, note, amount) to corresponding textboxes
         last20 = self.transactions.tail(20)
         last20 = last20[::-1]
         self.history1.insert(tk.END, last20[['Date']].to_string(index=False))
         self.history1.tag_configure("right", justify='right')
         self.history1.tag_add("right", 1.0, "end")
-        # self.history1.tag_configure("bold", font=('bold'))
-        # self.history1.tag_add("bold", "1.0", "1.2")
 
         self.history2.insert(tk.END, last20[['Type']].to_string(index=False))
         self.history2.tag_configure("right", justify='right')
@@ -526,12 +607,18 @@ class mainScreen(tk.Frame):
         self.history4.tag_configure("right", justify='right')
         self.history4.tag_add("right", 1.0, "end")
 
+        # Re-disable textboxes so they cannot be altered by user
         self.history1.config(state='disabled')
         self.history2.config(state='disabled')
         self.history3.config(state='disabled')
         self.history4.config(state='disabled')
 
     def editBudget(self):
+        '''
+        Transitions from mainScreen to budgetScreen.
+        Calls loadBudget() method from budgetScreen
+        '''
+
         self.controller.frames[budgetScreen].loadBudget()
         self.controller.show_frame(budgetScreen)
 
@@ -553,17 +640,19 @@ class pieScreen(tk.Frame):
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
         horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
 
+        # Title label
         t = "Spending breakdown for the month of %s, %d" \
             % (month_name[currentMonth], currentYear)
         label = tk.Label(self, text=t, font=gigaFont)
         label.grid(row=0, column=1, columnspan=45, sticky='ew')
 
+        # Button to go back to mainScreen
         mainButton =\
             ttk.Button(self, text="OK",
                        command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=0, column=0, sticky='nw', padx=(0, 0))
-        # mainButton.pack()
 
+        # Figure/canvas objects to contain pie chart
         self.fig = Figure(figsize=(7, 6), dpi=105)
 
         self.canvas = FigureCanvasTkAgg(self.fig, self)
@@ -573,17 +662,24 @@ class pieScreen(tk.Frame):
                                    columnspan=45, sticky='ew')
 
     def plot(self):
+        '''
+        Plots pie chart based on total spending for the current month
+        '''
+
         self.fig.clf()
         self.sub = self.fig.add_subplot(111)
         self.transactions = self.controller.frames[mainScreen].transactions
 
+        # Get transaction data for current month
         data = self.transactions[(self.transactions['y'] == currentYear) &
                                  (self.transactions['m'] == currentMonth)]
-
+        print(data)
+        # Check to see if there is no data for current month
         if data.size == 0:
             alert('No transactions this month!')
             return
 
+        # Get spending totals for each category from data
         bills = data.loc[data['Type'] == 'Bills', 'Amount'].sum()
         food = data.loc[data['Type'] == 'Food', 'Amount'].sum()
         subs = data.loc[data['Type'] == 'Subscriptions', 'Amount'].sum()
@@ -591,14 +687,18 @@ class pieScreen(tk.Frame):
         misc = data.loc[data['Type'] == 'Misc', 'Amount'].sum()
 
         labels = categories
-        sizes = [misc, bills, food, subs, ent]
+        sizes = [bills, food, subs, ent, misc]
+        print(sizes)
 
+        # Function to get spending totals to show on pie chart
         def val(i):
             amt = round(i / 100 * sum(sizes), 0)
-            amt = '${:,.2f}'.format(amt)
+            amt = '${:,.0f}'.format(amt)
             return(amt)
 
+        # Plot and show pie chart
         self.sub.pie(sizes, labels=labels, autopct=val, startangle=90)
+        self.sub.legend(categories, loc='best')
         self.sub.axis('equal')
         self.canvas.draw()
 
@@ -615,6 +715,8 @@ class barScreen(tk.Frame):
         self.username = None
         self.budget_total = 0
         self.budget = None
+        self.fig = None
+        self.fig2 = None
         tk.Frame.__init__(self, parent)
 
         # Vertical frame for grid reference
@@ -632,7 +734,7 @@ class barScreen(tk.Frame):
         # Button to go back to mainScreen
         mainButton =\
             ttk.Button(self, text="OK",
-                       command=lambda: controller.show_frame(mainScreen))
+                       command=self.back)
         mainButton.grid(row=0, column=0, sticky='nw', padx=(0, 0))
 
         # Year selection box
@@ -653,9 +755,9 @@ class barScreen(tk.Frame):
         self.monthmenu.grid(row=1, column=22, rowspan=1,
                             columnspan=6, sticky="ew")
 
-        # Go button
+        # Go button to graph spending for selected month
         self.goButton = ttk.Button(self, text="Go",
-                                   command=self.go)
+                                   command=self.graphSpending)
         self.goButton.grid(row=1, column=30, sticky='ew', padx=(0, 0))
 
         # Figure for graphing budget
@@ -674,23 +776,47 @@ class barScreen(tk.Frame):
         self.canvas2._tkcanvas.grid(row=12, column=1, rowspan=8,
                                     columnspan=45, sticky='ew')
 
-    def start(self):
+    def back(self):
+        '''
+        Clears figures, goes back to mainScreen
+
+        **Parameters**
+            None
+        '''
+
         self.fig.clf()
         self.fig2.clf()
+        self.controller.show_frame(mainScreen)
 
+    def start(self):
+        '''
+        Initialization method for barScreen
+        Graphs current budget as stacked bar graph
+        '''
+
+        self.fig.clf()
+        self.canvas.draw()
+        self.fig2.clf()
+        self.canvas2.draw()
+
+        # Get updated data from csv files
         self.username = self.controller.frames[mainScreen].username
         path = './profiles/' + self.username + '.csv'
         self.bud_nums = pd.read_csv(path, index_col=0)
         path = './profiles/' + self.username + '_transactions.csv'
         self.transactions = pd.read_csv(path, index_col=0)
+
+        # Make go button clickable
         self.goButton['state'] = 'normal'
 
+        # Check to make sure data exists
         if self.transactions.size == 0:
             alert("No transaction history available!")
             self.goButton['state'] = 'disabled'
-            # self.controller.show_frame[mainScreen]
             return
 
+        # Get list of years appearing in transaction history
+        # Assign to dropdown menu for year selection
         years = list(set(list(self.transactions['y'])))
         for i, v in enumerate(years):
             years[i] = int(v)
@@ -698,6 +824,7 @@ class barScreen(tk.Frame):
         self.yearmenu['values'] = years
         self.yearmenu.current(0)
 
+        # Get budget values for each category, get total budget
         self.budget = {}
         self.budget_total = 0
         for i in categories:
@@ -706,6 +833,7 @@ class barScreen(tk.Frame):
             self.budget_total +=\
                 self.bud_nums.iloc[0, self.bud_nums.columns.get_loc(i)]
 
+        # Plot stacked bar graph of budget
         self.fig.clf()
         self.sub = self.fig.add_subplot(111)
 
@@ -720,20 +848,34 @@ class barScreen(tk.Frame):
         self.sub.set_xlim([0, 1.1 * self.budget_total])
         self.canvas.draw()
 
-    def go(self):
+    def graphSpending(self):
+        '''
+        Graphs spending for selected month
+
+        **Parameters**
+            None
+        '''
+
+        # Get input year and month from comboboxes
         year = int(self.yearselection.get())
         month = months[self.monthselection.get()]
+
+        # Get transaction data from selected month/year
         data = self.transactions[(self.transactions['y'] == year) &
                                  (self.transactions['m'] == month)]
 
+        # Get categorical and total spending for given month/year
         spending_total = 0
         spending = {}
         for i in categories:
             spending[i] = data.loc[data['Type'] == i, 'Amount'].sum()
             spending_total += data.loc[data['Type'] == i, 'Amount'].sum()
 
+        # Check if spending or budget total is larger
+        # Will be used as xlim for bar graphs
         xmax = max(spending_total, self.budget_total)
 
+        # Graph selected month's spending
         self.fig2.clf()
         self.sub2 = self.fig2.add_subplot(111)
 
@@ -748,7 +890,7 @@ class barScreen(tk.Frame):
         self.sub2.set_xlim([0, 1.1 * xmax])
         self.canvas2.draw()
 
-        # Redraw budget
+        # Redraw budget graph to account for xlim
         self.fig.clf()
         self.sub = self.fig.add_subplot(111)
 
@@ -782,11 +924,13 @@ class budgetScreen(tk.Frame):
         horframe = ttk.Frame(self, borderwidth=5, width=1200, height=1)
         horframe.grid(column=0, row=0, columnspan=50, rowspan=1)
 
+        # Button to go back to mainScreen
         mainButton =\
             ttk.Button(self, text="Back",
                        command=lambda: controller.show_frame(mainScreen))
         mainButton.grid(row=0, column=0, padx=(0, 0), pady=(0, 0), sticky='ew')
 
+        # Screen title
         title = tk.Label(self, text="Edit your budget:", font=largeFont)
         title.grid(row=2, column=4, columnspan=2)
 
@@ -872,12 +1016,21 @@ class budgetScreen(tk.Frame):
         self.misc_budget.grid(row=8, column=21)
 
     def save(self):
+        '''
+        Saves input budget values, writes to budget csv
+
+        **Parameters**
+            None
+        '''
+
+        # Get input values
         bills = self.billsEntry.get()
         food = self.foodEntry.get()
         subs = self.subscriptionsEntry.get()
         ent = self.entertainmentEntry.get()
         misc = self.miscEntry.get()
 
+        # Check if inputs are valid
         for i in bills, food, subs, ent, misc:
             try:
                 i = round(float(i), 2)
@@ -892,6 +1045,7 @@ class budgetScreen(tk.Frame):
                 alert("You don't have that much money.")
                 return
 
+        # Assign new values to budget info dataframe
         self.bud_nums = self.controller.frames[mainScreen].bud_nums
         self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Bills')] = bills
         self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Food')] = food
@@ -901,29 +1055,39 @@ class budgetScreen(tk.Frame):
             = ent
         self.bud_nums.iloc[0, self.bud_nums.columns.get_loc('Misc')] = misc
 
+        # Save dataframe to file
         filepath = './profiles/'\
             + self.controller.frames[mainScreen].username + '.csv'
         self.bud_nums.to_csv(filepath)
         self.loadBudget()
 
     def loadBudget(self):
+        '''
+        Loads updated budget information from csv to display to budgetScreen
+        '''
+
+        # Enable textboxes to allow for text insertion
         self.bills_budget.config(state='normal')
         self.food_budget.config(state='normal')
         self.subs_budget.config(state='normal')
         self.ent_budget.config(state='normal')
         self.misc_budget.config(state='normal')
 
+        # Clear textboxes
         self.bills_budget.delete(1.0, tk.END)
         self.food_budget.delete(1.0, tk.END)
         self.subs_budget.delete(1.0, tk.END)
         self.ent_budget.delete(1.0, tk.END)
         self.misc_budget.delete(1.0, tk.END)
 
+        # Load budget file
         self.username = self.controller.frames[mainScreen].username
-
         path = './profiles/' + self.username + '.csv'
         self.bud_nums = pd.read_csv(path, index_col=0)
 
+        # Get budget values for each category
+        # Write to corresponding textbox
+        # Disable each textbox after writing
         temp = float(self.bud_nums.iloc[0]['Bills'])
         temp = '${:,.2f}'.format(temp)
         self.bills_budget.insert(tk.END, temp)
@@ -951,6 +1115,7 @@ class budgetScreen(tk.Frame):
 
 
 if __name__ == "__main__":
+    # Thanks for playing
     window = pyBudget()
     window.title("pyBudget")
     window.wm_geometry("1200x640")
