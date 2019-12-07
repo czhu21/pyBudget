@@ -1,4 +1,4 @@
-# pybudget
+# pyBudget
 
 This is a repository for pyBudget, a tkinter-based budgeting application. The application is written in and for python3.
 
